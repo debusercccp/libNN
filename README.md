@@ -162,4 +162,3 @@ from libNN.utils import compute_accuracy, compute_f1_score, mae, rmse, normalize
     epochs=100,         # Quante volte guardare tutti i dati
     eval_every=10,      # Ogni quante epoche stampare la Loss di validazione
     batch_size=32       # Quanti dati processare alla volta
-)
