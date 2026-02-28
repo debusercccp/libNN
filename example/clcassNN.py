@@ -1,5 +1,5 @@
 """
-Skeleton - Modello di Classificazione Multi-classe
+Modello di Classificazione Multi-classe
 Libreria: libNN (custom)
 Output: Softmax + CrossEntropy
 """
