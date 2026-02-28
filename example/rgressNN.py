@@ -1,6 +1,6 @@
 
 """
-Skeleton - Modello di Regressione
+Modello di Regressione
 Libreria: libNN (custom)
 Task: regressione su dati tuoi
 """
