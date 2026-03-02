@@ -2,8 +2,6 @@
 
 Una libreria per il Deep Learning scritta da zero in Python e NumPy.
 
----
-
 ## Installazione (Consigliata)
 
 Per rendere la libreria importabile da qualsiasi cartella nel tuo sistema senza impazzire con il `PYTHONPATH`, usa il file `pyproject.toml` incluso.
