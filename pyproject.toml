@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libNN"
+version = "0.1.0"
+description = "A custom neural network library from scratch"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "noya" }
+]
+dependencies = [
+    "numpy",
+    "matplotlib"
+]
+
+[tool.setuptools]
+# This tells setuptools to look for the code in the current directory
+packages = ["libNN"]
+package-dir = {"libNN" = "."}
