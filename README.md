@@ -25,7 +25,6 @@ Dalla radice della libreria, installa in modalità editable:
 
     ```Bash
     pip install -e .
-    ```
     
 Questo ti permette di modificare il codice in libNN/ e vedere i cambiamenti riflettersi immediatamente nei tuoi script senza reinstallare.
 
