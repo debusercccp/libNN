@@ -1,5 +1,35 @@
 # Guida a libNN
 
+Una libreria per il Deep Learning scritta da zero in Python e NumPy.
+
+---
+
+## Installazione (Consigliata)
+
+Per rendere la libreria importabile da qualsiasi cartella nel tuo sistema senza impazzire con il `PYTHONPATH`, usa il file `pyproject.toml` incluso.
+
+1. Assicurati di avere il file `pyproject.toml` nella cartella radice (`~/libNN/`):
+   ```toml
+   [build-system]
+   requires = ["setuptools>=61.0"]
+   build-backend = "setuptools.build_meta"
+
+   [project]
+   name = "libNN"
+   version = "0.1.0"
+   dependencies = ["numpy", "matplotlib"]
+
+   [tool.setuptools]
+   packages = ["libNN"]
+   package-dir = {"libNN" = "."}
+    ```
+Dalla radice della libreria, installa in modalità editable:
+    ```
+    Bash
+    pip install -e .
+    ```
+Questo ti permette di modificare il codice in libNN/ e vedere i cambiamenti riflettersi immediatamente nei tuoi script senza reinstallare.
+
 ## Struttura della Libreria
 
 - **`network.py`**: Contiene `NeuralNetwork` (per assemblare i layer) e `Trainer` (per il ciclo di addestramento).
