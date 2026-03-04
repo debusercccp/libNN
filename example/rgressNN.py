@@ -62,7 +62,7 @@ def build_model() -> NeuralNetwork:
     layers = [
         Dense(neurons=32, activation=ReLU()),
         Dense(neurons=64, activation=LeakyReLU()),
-        Dropout(rate=0.2),                        
+        Dropout(keep_prob=0.2),                        
         Dense(neurons=16, activation=Sigmoid()),
         Dense(neurons=1,  activation=Linear()),   
     ]
