@@ -2,30 +2,38 @@
 
 Una libreria per il Deep Learning scritta da zero in Python e NumPy.
 
+---
+
 ## Installazione (Consigliata)
 
 Per rendere la libreria importabile da qualsiasi cartella nel tuo sistema senza impazzire con il `PYTHONPATH`, usa il file `pyproject.toml` incluso.
 
-1. Assicurati di avere il file `pyproject.toml` nella cartella radice (`~/libNN/`):
-   ```toml
-   [build-system]
-   requires = ["setuptools>=61.0"]
-   build-backend = "setuptools.build_meta"
+Assicurati di avere il file `pyproject.toml` nella cartella radice (`~/libNN/`):
 
-   [project]
-   name = "libNN"
-   version = "0.1.0"
-   dependencies = ["numpy", "matplotlib"]
+```toml
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
-   [tool.setuptools]
-   packages = ["libNN"]
-   package-dir = {"libNN" = "."}
-    ```
+[project]
+name = "libNN"
+version = "0.1.0"
+dependencies = ["numpy", "matplotlib"]
+
+[tool.setuptools]
+packages = ["libNN"]
+package-dir = {"libNN" = "."}
+```
+
 Dalla radice della libreria, installa in modalità editable:
 
-    pip install -e .
-    
-Questo ti permette di modificare il codice in libNN/ e vedere i cambiamenti riflettersi immediatamente nei tuoi script senza reinstallare.
+```bash
+pip install -e .
+```
+
+Questo ti permette di modificare il codice in `libNN/` e vedere i cambiamenti riflettersi immediatamente nei tuoi script senza reinstallare.
+
+---
 
 ## Struttura della Libreria
 
@@ -46,7 +54,6 @@ Usa la classe `NeuralNetwork` combinata con i layer `Dense` quando hai dati tabu
 from libNN import NeuralNetwork, Dense, ReLU, Dropout, Linear
 from libNN.losses import MeanSquaredError
 
-# 1. Definisci l'architettura come una lista
 layers = [
     Dense(neurons=64, activation=ReLU()),
     Dropout(keep_prob=0.8),
@@ -54,7 +61,6 @@ layers = [
     Dense(neurons=1, activation=Linear())
 ]
 
-# 2. Inizializza il modello
 model = NeuralNetwork(layers=layers, loss=MeanSquaredError())
 ```
 
@@ -98,45 +104,74 @@ Indipendentemente da quale rete o loss hai scelto, l'addestramento si fa sempre 
 from libNN.optimizers import SGDMomentum
 from libNN.network import Trainer
 
-# Scegli l'ottimizzatore (SGDMomentum è quasi sempre la scelta migliore)
 optimizer = SGDMomentum(lr=0.01, momentum=0.9)
-
-# Inizializza il Trainer collegandolo alla rete
 trainer = Trainer(net=model, optim=optimizer)
 
-# Lancia l'addestramento
 trainer.fit(
     X_train, y_train,   # Dati per imparare
-    X_test, y_test,     # Dati per verificare che non stia memorizzando (overfitting)
+    X_test,  y_test,    # Dati per verificare che non stia memorizzando (overfitting)
     epochs=100,         # Quante volte guardare tutti i dati
-    eval_every=10,      # Ogni quante epoche stampare la Loss di validazione
-    batch_size=32       # Quanti dati processare alla volta
+    eval_every=10,      # Ogni quante epoche valutare la Loss di validazione
+    batch_size=32,      # Quanti dati processare alla volta
+    patience=5          # Epoche di valutazione senza miglioramento prima di fermarsi
 )
 ```
-# Salvataggio e Auto-Checkpoint
 
-libNN integra la gestione dello stato del modello direttamente nella classe NeuralNetwork.
+### Parametri di `fit()`
+
+| Parametro | Default | Descrizione |
+|---|---|---|
+| `epochs` | `100` | Numero massimo di epoche di addestramento |
+| `eval_every` | `10` | Ogni quante epoche valutare sul validation set |
+| `batch_size` | `32` | Dimensione dei mini-batch |
+| `seed` | `1` | Seed per la riproducibilità dello shuffle |
+| `restart` | `True` | Se `True`, reinizializza i layer prima di partire |
+| `patience` | `5` | Numero di valutazioni consecutive senza miglioramento prima dell'early stopping |
+
+### Early Stopping
+
+Il `Trainer` monitora la validation loss ad ogni valutazione. Se la loss non migliora per `patience` valutazioni consecutive, l'addestramento si interrompe automaticamente e il modello viene riportato al miglior checkpoint registrato.
+
+```
+Epoch 10: Validation Loss = 0.0842 ✓
+Epoch 20: Validation Loss = 0.0761 ✓
+Epoch 30: Validation Loss = 0.0798 (no miglioramento, patience 1/5)
+Epoch 40: Validation Loss = 0.0823 (no miglioramento, patience 2/5)
+...
+Early stopping attivato all'epoch 80. Ripristino miglior modello (loss=0.0761).
+```
+
+> Con `eval_every=10` e `patience=5`, il training si ferma al massimo dopo 50 epoche consecutive senza miglioramento.
+
+---
+
 ## Salvataggio e Caricamento
 
-Il salvataggio preserva l'intera struttura dei layer, i pesi (W), i bias (b) e lo stato dell'addestramento.
+Il salvataggio preserva l'intera struttura dei layer, i pesi, i bias e lo stato dell'addestramento tramite `pickle`.
+
 ```python
 # Salva il modello corrente
 model.save_model("mio_modello.pkl")
 
-# Carica un modello esistente (Metodo Statico)
-from libNN import NeuralNetwork
+# Carica un modello esistente
 model = NeuralNetwork.load_model("mio_modello.pkl")
 ```
-## Auto-Checkpoint (Best Model)
 
-Il Trainer monitora la Loss ad ogni epoca. Se save_best=True, il modello viene sovrascritto solo se l'errore corrente è il più basso mai registrato.
+### Auto-Checkpoint (Best Model)
+
+`check_and_save()` salva il modello **solo se** la loss corrente è inferiore al minimo storico. Utile da chiamare manualmente nel proprio loop di training.
+
 ```python
-trainer.fit(X_train, y_train, epochs=1000, save_best=True, checkpoint_path="best_weights.pkl")
+# Salva solo se è il miglior modello finora
+model.check_and_save(current_loss=val_loss, filename="best_model.pkl")
 ```
 
-# Esempi per Tipo di Task
+---
+
+## Esempi per Tipo di Task
 
 ### Regressione
+
 ```python
 from libNN import NeuralNetwork, Dense, ReLU, Linear
 from libNN.losses import MeanSquaredError
@@ -144,12 +179,13 @@ from libNN.losses import MeanSquaredError
 layers = [
     Dense(neurons=64, activation=ReLU()),
     Dense(neurons=32, activation=ReLU()),
-    Dense(neurons=1,  activation=Linear()),   # output: valore continuo
+    Dense(neurons=1,  activation=Linear()),
 ]
 model = NeuralNetwork(layers=layers, loss=MeanSquaredError())
 ```
 
 ### Classificazione Binaria
+
 ```python
 from libNN import NeuralNetwork, Dense, ReLU, Sigmoid
 from libNN.losses import BinaryCrossEntropy
@@ -157,36 +193,38 @@ from libNN.losses import BinaryCrossEntropy
 layers = [
     Dense(neurons=64, activation=ReLU()),
     Dense(neurons=32, activation=ReLU()),
-    Dense(neurons=1,  activation=Sigmoid()),  # output: probabilità in [0, 1]
+    Dense(neurons=1,  activation=Sigmoid()),
 ]
 model = NeuralNetwork(layers=layers, loss=BinaryCrossEntropy())
 ```
 
-### Classificazione Multi-classe 
+### Classificazione Multi-classe
+
 ```python
 from libNN import NeuralNetwork, Dense, ReLU, Softmax
 from libNN.losses import CategoricalCrossEntropy
 
-N_CLASSES = 3  # modifica con il tuo numero di classi
+N_CLASSES = 3
 
 layers = [
     Dense(neurons=64, activation=ReLU()),
     Dense(neurons=32, activation=ReLU()),
-    Dense(neurons=N_CLASSES, activation=Softmax()),  # output: distribuzione di probabilità
+    Dense(neurons=N_CLASSES, activation=Softmax()),
 ]
 model = NeuralNetwork(layers=layers, loss=CategoricalCrossEntropy())
 
-# y deve essere one-hot encoded, es:
+# y deve essere one-hot encoded:
 # classe 0 → [1, 0, 0]
 # classe 1 → [0, 1, 0]
 # classe 2 → [0, 0, 1]
 ```
 
-### Predizione e Valutazione (Multi-classe)
+### Predizione (Multi-classe)
+
 ```python
 model.train = False
-y_probs = model.forward(X_test)          # probabilità per ogni classe
-y_pred  = np.argmax(y_probs, axis=1)     # classe con probabilità più alta
+y_probs = model.forward(X_test)       # probabilità per ogni classe
+y_pred  = np.argmax(y_probs, axis=1)  # classe con probabilità più alta
 ```
 
 ---
@@ -204,6 +242,3 @@ from libNN.utils import compute_accuracy, compute_f1_score, mae, rmse, normalize
 | `mae(y_true, y_pred)` | Mean Absolute Error per regressione |
 | `rmse(y_true, y_pred)` | Root Mean Squared Error per regressione |
 | `normalize_data(X)` | Normalizza le feature in input |
-    epochs=100,         # Quante volte guardare tutti i dati
-    eval_every=10,      # Ogni quante epoche stampare la Loss di validazione
-    batch_size=32       # Quanti dati processare alla volta
