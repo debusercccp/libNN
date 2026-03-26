@@ -4,17 +4,6 @@ Una libreria per il Deep Learning scritta da zero in Python e NumPy.
 
 ---
 
-## Versione 0.1.0 - Correzioni e Miglioramenti
-
-**Novità in questa release:**
-- ✅ **Dropout fix**: Mask ora sempre inizializzato, garantisce correttezza in eval mode
-- ✅ **He Initialization**: Dense layer usa `sqrt(2.0 / in_dim)` ottimale per ReLU
-- ✅ **Seed handling**: Seed 0 ora rilevato correttamente (fix bug `is not None`)
-- ✅ **Exported utility**: `to_one_hot()` aggiunto a `__init__.py`
-- ✅ **Docstring completi**: Tutti i moduli documentati con esempi e note
-
----
-
 ## Installazione (Consigliata)
 
 Per rendere la libreria importabile da qualsiasi cartella nel tuo sistema senza impazzire con il `PYTHONPATH`, usa il file `pyproject.toml` incluso.
@@ -93,19 +82,19 @@ La funzione di Loss è l'obiettivo della tua rete. Se scegli quella sbagliata, l
 
 ---
 
-## ⚠️ IMPORTANTE: Softmax + CategoricalCrossEntropy
+##  IMPORTANTE: Softmax + CategoricalCrossEntropy
 
 **Softmax** e **CategoricalCrossEntropy** sono **progettati per lavorare in coppia**. Quando usati insieme, il gradiente della combinazione semplifica a `(prediction - target)`, che è numericamente stabile e altamente efficiente.
 
 ```python
-# ✅ CORRETTO: Usa sempre insieme
+#  CORRETTO: Usa sempre insieme
 layers = [
     Dense(64, ReLU()),
     Dense(n_classes, Softmax())  # Output: probabilità
 ]
 model = NeuralNetwork(layers, loss=CategoricalCrossEntropy())
 
-# ❌ NON FARLO: Usarli separatamente con altre combinazioni
+#  NON FARLO: Usarli separatamente con altre combinazioni
 # layers = [..., Dense(n_classes, Sigmoid())]  # ← sbagliato activation
 # model = NeuralNetwork(layers, loss=CategoricalCrossEntropy())  # ← incompatibile
 ```
