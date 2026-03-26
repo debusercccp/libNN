@@ -6,6 +6,7 @@ from .utils import assert_same_shape
 class Operation(object):
     '''
     Base class for an "operation" in a neural network.
+    An Operation encapsulates a forward computation and its gradient.
     '''
     def __init__(self):
         pass
@@ -49,22 +50,36 @@ class Operation(object):
         raise NotImplementedError()
     
 class ParamOperation(Operation):
-
     '''
-    An Operation with parameters.
+    An Operation with learnable parameters.
+    Examples: WeightMultiply (matrix multiplication with weight matrix),
+              BiasAdd (addition of bias vector).
+    
+    Subclasses must implement both _input_grad() and _param_grad().
     '''
 
     def __init__(self, param: ndarray) -> ndarray:
         '''
-        The ParamOperation method
+        Initialize ParamOperation with learnable parameters.
+        
+        Args:
+            param: The parameter array (e.g., weight matrix, bias vector).
+                   This will be updated during training via gradient descent.
         '''
         super().__init__()
         self.param = param
 
     def backward(self, output_grad: ndarray) -> ndarray:
         '''
+        Computes both input gradient and parameter gradient.
         Calls self._input_grad and self._param_grad.
-        Checks appropriate shapes.
+        Validates shapes of all gradients.
+        
+        Args:
+            output_grad: Gradient of loss w.r.t. output of this operation.
+            
+        Returns:
+            input_grad: Gradient to propagate backward to previous layer.
         '''
 
         assert_same_shape(self.output, output_grad)
@@ -79,19 +94,26 @@ class ParamOperation(Operation):
 
     def _param_grad(self, output_grad: ndarray) -> ndarray:
         '''
+        Compute gradient of loss w.r.t. the parameter.
+        
         Every subclass of ParamOperation must implement _param_grad.
+        This gradient is used by optimizers to update the parameters.
         '''
         raise NotImplementedError()
     
 class Layer(object):
     '''
     A "layer" of neurons in a neural network.
+    Layers contain operations (weight multiplication, bias addition, activation).
     '''
 
     def __init__(self,
                  neurons: int):
         '''
-        The number of "neurons" roughly corresponds to the "breadth" of the layer
+        Initialize a layer.
+        
+        Args:
+            neurons: Number of output units in this layer.
         '''
         self.neurons = neurons
         self.first = True
@@ -102,13 +124,16 @@ class Layer(object):
 
     def _setup_layer(self, num_in: int) -> None:
         '''
-        The _setup_layer function must be implemented for each layer
+        The _setup_layer function must be implemented for each layer.
+        Called once on first forward pass to initialize parameters
+        based on the actual input shape.
         '''
         raise NotImplementedError()
 
     def forward(self, input_: ndarray) -> ndarray:
         '''
-        Passes input forward through a series of operations
+        Passes input forward through a series of operations.
+        On first call, initializes layer parameters via _setup_layer().
         ''' 
         if self.first:
             self._setup_layer(input_)
@@ -117,7 +142,6 @@ class Layer(object):
         self.input_ = input_
 
         for operation in self.operations:
-
             input_ = operation.forward(input_)
 
         self.output = input_
@@ -126,8 +150,9 @@ class Layer(object):
 
     def backward(self, output_grad: ndarray) -> ndarray:
         '''
-        Passes output_grad backward through a series of operations
-        Checks appropriate shapes
+        Passes output_grad backward through a series of operations.
+        Operations are traversed in reverse order.
+        Checks appropriate shapes.
         '''
 
         assert_same_shape(self.output, output_grad)
@@ -143,7 +168,7 @@ class Layer(object):
 
     def _param_grads(self) -> ndarray:
         '''
-        Extracts the _param_grads from a layer's operations
+        Extracts the param_grads from a layer's ParamOperation instances.
         '''
 
         self.param_grads = []
@@ -153,7 +178,7 @@ class Layer(object):
 
     def _params(self) -> ndarray:
         '''
-        Extracts the _params from a layer's operations
+        Extracts the params from a layer's ParamOperation instances.
         '''
 
         self.params = []
@@ -163,16 +188,24 @@ class Layer(object):
 
 class Loss(object):
     '''
-    The "loss" of a neural network
+    The loss function of a neural network.
+    Measures the discrepancy between predictions and targets.
     '''
 
     def __init__(self):
-        '''Pass'''
+        '''Initialize Loss'''
         pass
 
     def forward(self, prediction: ndarray, target: ndarray) -> float:
         '''
-        Computes the actual loss value
+        Computes the actual loss value.
+        
+        Args:
+            prediction: Model output (shape depends on task).
+            target: Ground truth labels (same shape as prediction).
+            
+        Returns:
+            float: Scalar loss value.
         '''
         assert_same_shape(prediction, target)
 
@@ -185,7 +218,11 @@ class Loss(object):
 
     def backward(self) -> ndarray:
         '''
-        Computes gradient of the loss value with respect to the input to the loss function
+        Computes gradient of the loss value w.r.t. the predictions.
+        This gradient is propagated backward through the network.
+        
+        Returns:
+            ndarray: Gradient with same shape as prediction.
         '''
         self.input_grad = self._input_grad()
 
@@ -204,4 +241,3 @@ class Loss(object):
         Every subclass of "Loss" must implement the _input_grad function.
         '''
         raise NotImplementedError()
-    

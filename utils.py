@@ -2,58 +2,168 @@ import numpy as np
 from numpy import ndarray
 
 def assert_same_shape(array: ndarray, array_grad: ndarray):
+    '''
+    Assert that two arrays have the same shape.
+    Used throughout the library to catch gradient shape mismatches.
+    
+    Args:
+        array: First array
+        array_grad: Second array
+        
+    Raises:
+        AssertionError: If shapes don't match
+    '''
     assert array.shape == array_grad.shape, \
         f"Shapes must match: {array.shape} vs {array_grad.shape}"
 
 def permute_data(X: ndarray, y: ndarray):
+    '''
+    Randomly shuffle data (useful for mini-batch SGD).
+    Shuffles features and targets with the same permutation.
+    
+    Args:
+        X: Features array, shape (n_samples, n_features)
+        y: Target array, shape (n_samples, ...)
+        
+    Returns:
+        Tuple of (X_shuffled, y_shuffled) with same permutation applied
+    '''
     perm = np.random.permutation(X.shape[0])
     return X[perm], y[perm]
 
 def to_one_hot(labels: ndarray, num_classes: int) -> ndarray:
-    '''Converte un array di etichette in una matrice one-hot.'''
+    '''
+    Convert class labels to one-hot encoded format.
+    Used for multi-class classification with CategoricalCrossEntropy.
+    
+    Args:
+        labels: Array of class indices, shape (n_samples,) with values in [0, num_classes)
+        num_classes: Total number of classes
+        
+    Returns:
+        One-hot encoded array, shape (n_samples, num_classes)
+        
+    Example:
+        >>> labels = np.array([0, 2, 1, 0])
+        >>> one_hot = to_one_hot(labels, num_classes=3)
+        >>> one_hot
+        array([[1., 0., 0.],
+               [0., 0., 1.],
+               [0., 1., 0.],
+               [1., 0., 0.]])
+    '''
     labels = labels.astype(int).flatten()
     one_hot = np.zeros((labels.shape[0], num_classes))
     one_hot[np.arange(labels.shape[0]), labels] = 1
     return one_hot
 
 def compute_accuracy(predictions: ndarray, target: ndarray) -> float:
-    '''Calcola la percentuale di risposte corrette (Classificazione).'''
+    '''
+    Compute classification accuracy.
+    Handles both one-hot encoded and integer label targets.
+    
+    Args:
+        predictions: Model predictions, shape (n_samples, n_classes) (e.g., from Softmax)
+        target: Ground truth, either one-hot (n_samples, n_classes) or indices (n_samples,)
+        
+    Returns:
+        Accuracy as a float in [0, 1]
+        
+    Example:
+        >>> preds = np.array([[0.1, 0.9], [0.8, 0.2]])  # 2 samples, 2 classes
+        >>> targets = np.array([1, 0])  # class 1, class 0
+        >>> compute_accuracy(preds, targets)
+        1.0
+    '''
     if predictions.shape != target.shape:
-        # Gestisce il caso in cui target siano indici e non one-hot
+        # Handle case where target is indices, not one-hot
         pred_labels = np.argmax(predictions, axis=1)
         return np.mean(pred_labels == target.flatten())
     
+    # Both are one-hot or similar shape
     pred_labels = np.argmax(predictions, axis=1)
     true_labels = np.argmax(target, axis=1)
     return np.mean(pred_labels == true_labels)
 
 def mae(y_true: ndarray, y_pred: ndarray) -> float:
-    '''Mean Absolute Error'''
+    '''
+    Mean Absolute Error (MAE) for regression.
+    L = 1/N * sum(|y_true - y_pred|)
+    
+    Args:
+        y_true: Ground truth values
+        y_pred: Predicted values (same shape as y_true)
+        
+    Returns:
+        MAE as a float (non-negative)
+    '''
     return np.mean(np.abs(y_true - y_pred))
 
 def rmse(y_true: ndarray, y_pred: ndarray) -> float:
-    '''Root Mean Squared Error'''
+    '''
+    Root Mean Squared Error (RMSE) for regression.
+    L = sqrt(1/N * sum((y_true - y_pred)^2))
+    
+    More sensitive to outliers than MAE.
+    
+    Args:
+        y_true: Ground truth values
+        y_pred: Predicted values (same shape as y_true)
+        
+    Returns:
+        RMSE as a float (non-negative)
+    '''
     return np.sqrt(np.mean(np.power(y_true - y_pred, 2)))
 
 def normalize_data(data: ndarray) -> ndarray:
-    '''Normalizza i dati tra 0 e 1 (molto utile per le immagini).'''
+    '''
+    Min-max normalization: scale data to [0, 1].
+    Useful for image data or features with different scales.
+    
+    Args:
+        data: Input array of any shape
+        
+    Returns:
+        Normalized array with values in [0, 1], same shape as input
+        
+    Formula: x_norm = (x - min(x)) / (max(x) - min(x) + eps)
+    '''
     return (data - np.min(data)) / (np.max(data) - np.min(data) + 1e-9)
 
 def compute_f1_score(predictions: ndarray, target: ndarray) -> float:
     '''
-    Calcola l'F1-Score per la classificazione binaria.
-    Si assume che predictions sia già convertito in 0 o 1 (es. preds > 0.5).
+    Compute F1-Score for binary classification.
+    F1 = 2 * (Precision * Recall) / (Precision + Recall)
+    
+    Use for: Imbalanced binary classification problems.
+    
+    Args:
+        predictions: Predicted binary labels (0 or 1), or raw predictions to be thresholded
+        target: Ground truth binary labels (0 or 1)
+        
+    Returns:
+        F1-Score as a float in [0, 1]. Higher is better.
+        
+    Note:
+        If predictions are soft (e.g., probabilities from Sigmoid), 
+        threshold them first: pred_binary = (predictions > 0.5).astype(int)
+        
+    Example:
+        >>> preds = np.array([1, 0, 1, 1, 0, 1])
+        >>> true = np.array([1, 0, 1, 0, 0, 1])
+        >>> compute_f1_score(preds, true)
+        0.8333...
     '''
-    # Appiattiamo per sicurezza
+    # Flatten for safety
     preds = predictions.flatten()
     actual = target.flatten()
 
-    # Calcolo True Positives, False Positives, False Negatives
+    # Compute True Positives, False Positives, False Negatives
     tp = np.sum((preds == 1) & (actual == 1))
     fp = np.sum((preds == 1) & (actual == 0))
     fn = np.sum((preds == 0) & (actual == 1))
 
-    # Calcolo Precision e Recall con un piccolo epsilon per evitare divisioni per zero
+    # Precision and Recall with small epsilon to avoid division by zero
     precision = tp / (tp + fp + 1e-9)
     recall = tp / (tp + fn + 1e-9)
 

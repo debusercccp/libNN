@@ -66,17 +66,41 @@ class BiasAdd(ParamOperation):
         return np.sum(param_grad, axis=0).reshape(1, param_grad.shape[1])
 
 class Dropout(Operation):
+    '''
+    Dropout operation for regularization.
+    Randomly drops activations during training (forward).
+    During evaluation (is_training=False), passes input unchanged.
+    '''
     def __init__(self, keep_prob: float = 0.8):
+        '''
+        Initialize Dropout.
+        
+        Args:
+            keep_prob: Probability to keep a neuron active (default 0.8 = 20% dropout)
+        '''
+        assert 0 < keep_prob <= 1, f"keep_prob must be in (0, 1], got {keep_prob}"
         super().__init__()
         self.keep_prob = keep_prob
-        self.is_training = True # Default a True
+        self.is_training = True  # Default to training mode
+        self.mask = None  # Will be initialized in _output()
 
     def _output(self) -> np.ndarray:
+        '''
+        Apply dropout during training, pass through during evaluation.
+        Scales by 1/keep_prob during training (inverted dropout).
+        '''
         if self.is_training:
+            # Create binary mask and apply scaling
             self.mask = np.random.binomial(1, self.keep_prob, size=self.input_.shape)
             return self.input_ * self.mask / self.keep_prob
         else:
+            # Evaluation mode: no dropout, no scaling needed
+            # Still initialize mask for backward() consistency
+            self.mask = np.ones_like(self.input_)
             return self.input_
 
     def _input_grad(self, output_grad: np.ndarray) -> np.ndarray:
+        '''
+        Apply the same mask and scaling to gradient during backprop.
+        '''
         return output_grad * self.mask / self.keep_prob

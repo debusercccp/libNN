@@ -14,4 +14,5 @@ from .operations import Dropout
 # Ottimizzatori
 from .optimizers import SGD, SGDMomentum
 
-from .utils import compute_accuracy, compute_f1_score, mae, rmse
+# Utility
+from .utils import compute_accuracy, compute_f1_score, mae, rmse, to_one_hot
