@@ -1,3 +1,4 @@
+import os
 import copy
 import typing
 import pickle
@@ -7,22 +8,6 @@ from numpy import ndarray
 
 from .base import Layer, Loss
 from .utils import assert_same_shape, permute_data
-
-# --- Funzioni di Utility Matematiche ---
-
-def square(x: ndarray) -> ndarray:
-    return np.power(x, 2)
-
-def leaky_relu(x: ndarray) -> ndarray:
-    return np.maximum(0.2 * x, x)
-
-def sigmoid(x: ndarray) -> ndarray:
-    return 1 / (1 + np.exp(-x)) 
-
-def deriv(func: Callable[[ndarray], ndarray],
-          input_: ndarray,
-          diff: float = 0.001) -> ndarray:
-    return (func(input_ + diff) - func(input_ - diff)) / (2 * diff)
 
 # --- Classi Principali della Rete ---
 
@@ -140,20 +125,20 @@ class Trainer(object):
             
     def fit(self, X_train: ndarray, y_train: ndarray,
             X_test: ndarray, y_test: ndarray,
-            epochs: int=100, eval_every: int=10,
-            batch_size: int=32, seed: int = 1, restart: bool = True) -> None:
-        
+            epochs: int = 100, eval_every: int = 10,
+            batch_size: int = 32, seed: int = 1,
+            restart: bool = True, patience: int = 5) -> None:
+
         np.random.seed(seed)
         if restart:
             for layer in self.net.layers:
                 layer.first = True
             self.best_loss = 1e9
 
-        for e in range(epochs):
-            # Clonazione per eventuale ripristino (Early Stopping)
-            if (e+1) % eval_every == 0:
-                last_model = copy.deepcopy(self.net)
+        best_model = None
+        patience_counter = 0
 
+        for e in range(epochs):
             X_train, y_train = permute_data(X_train, y_train)
             batch_generator = self.generate_batches(X_train, y_train, batch_size)
 
@@ -161,14 +146,22 @@ class Trainer(object):
                 self.net.train_batch(X_batch, y_batch)
                 self.optim.step()
 
-            if (e+1) % eval_every == 0:
+            if (e + 1) % eval_every == 0:
                 loss = self._evaluate(X_test, y_test)
+
                 if loss < self.best_loss:
-                    print(f"Epoch {e+1}: Validation Loss = {loss:.4f}")
                     self.best_loss = loss
+                    best_model = copy.deepcopy(self.net)
+                    patience_counter = 0
+                    print(f"Epoch {e+1}: Validation Loss = {loss:.4f} ✓")
                 else:
-                    print(f"Loss aumentata a {loss:.4f}. Ripristino miglior modello.")
-                    self.net = last_model
-                    # Ricolleghiamo l'ottimizzatore alla copia corretta del modello
-                    setattr(self.optim, 'net', self.net)
-                    break
+                    patience_counter += 1
+                    print(f"Epoch {e+1}: Validation Loss = {loss:.4f} "
+                          f"(no miglioramento, patience {patience_counter}/{patience})")
+
+                    if patience_counter >= patience:
+                        print(f"\nEarly stopping attivato all'epoch {e+1}. "
+                              f"Ripristino miglior modello (loss={self.best_loss:.4f}).")
+                        self.net = best_model
+                        setattr(self.optim, 'net', self.net)
+                        break
