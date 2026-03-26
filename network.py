@@ -1,5 +1,6 @@
 import copy
 import typing
+import pickle
 from typing import Callable, List
 import numpy as np
 from numpy import ndarray
@@ -70,6 +71,34 @@ class NeuralNetwork:
         for layer in self.layers:
             if hasattr(layer, 'param_grads') and layer.param_grads is not None:
                 yield from layer.param_grads 
+
+    def save_model(self, filename="model.pkl"):
+        """Salva l'intera struttura del modello e i pesi."""
+        model_data = {
+            'weights': self.weights, # Lista di matrici numpy
+            'biases': self.biases,   # Lista di array numpy
+            'topology': self.topology # Es: [10, 32, 1]
+        }
+        with open(filename, 'wb') as f:
+            pickle.dump(model_data, f)
+        print(f" Modello salvato con successo in: {filename}")
+
+    @staticmethod
+    def load_model(filename):
+        """Carica un modello salvato e restituisce una nuova istanza di NN."""
+        if not os.path.exists(filename):
+            raise FileNotFoundError(f"Impossibile trovare il file {filename}")
+        
+        with open(filename, 'rb') as f:
+            data = pickle.load(f)
+        
+        # Creiamo una nuova istanza con la topologia salvata
+        # Nota: adatta il nome della classe se diverso
+        nn = NeuralNetwork(data['topology']) 
+        nn.weights = data['weights']
+        nn.biases = data['biases']
+        print(f" Modello caricato da {filename}. Pronto per le predizioni!")
+        return nn
 
 # --- Trainer Class ---
 
