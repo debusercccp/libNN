@@ -134,7 +134,7 @@ Il Trainer monitora la Loss ad ogni epoca. Se save_best=True, il modello viene s
 trainer.fit(X_train, y_train, epochs=1000, save_best=True, checkpoint_path="best_weights.pkl")
 ```
 
-## Esempi per Tipo di Task
+# Esempi per Tipo di Task
 
 ### Regressione
 ```python
