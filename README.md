@@ -113,10 +113,10 @@ trainer.fit(
     batch_size=32       # Quanti dati processare alla volta
 )
 ```
-## Salvataggio e Auto-Checkpoint
+# Salvataggio e Auto-Checkpoint
 
 libNN integra la gestione dello stato del modello direttamente nella classe NeuralNetwork.
-# Salvataggio e Caricamento
+## Salvataggio e Caricamento
 
 Il salvataggio preserva l'intera struttura dei layer, i pesi (W), i bias (b) e lo stato dell'addestramento.
 ```python
@@ -127,8 +127,7 @@ model.save_model("mio_modello.pkl")
 from libNN import NeuralNetwork
 model = NeuralNetwork.load_model("mio_modello.pkl")
 ```
-
-Auto-Checkpoint (Best Model)
+## Auto-Checkpoint (Best Model)
 
 Il Trainer monitora la Loss ad ogni epoca. Se save_best=True, il modello viene sovrascritto solo se l'errore corrente è il più basso mai registrato.
 ```python
