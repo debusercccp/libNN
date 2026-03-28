@@ -170,3 +170,56 @@ def compute_f1_score(predictions: ndarray, target: ndarray) -> float:
     # F1 Score = 2 * (P * R) / (P + R)
     f1 = 2 * (precision * recall) / (precision + recall + 1e-9)
     return f1
+
+def train_test_split(*arrays, test_size: float = 0.2, shuffle: bool = True, seed: int = None):
+    """
+    Divide uno o più array in coppie train/test.
+    Replica il comportamento di sklearn.model_selection.train_test_split.
+
+    Parametri
+    ---------
+    *arrays     : uno o più ndarray con lo stesso numero di campioni (asse 0)
+    test_size   : frazione del dataset da usare come test (default 0.2 → 20%)
+    shuffle     : se True, mescola i dati prima di dividere (default True)
+    seed        : seed per la riproducibilità (default None)
+
+    Ritorna
+    -------
+    Lista alternata [train_1, test_1, train_2, test_2, ...] — stesso ordine di sklearn.
+
+    Esempi
+    ------
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, seed=42)
+    X_train, X_test = train_test_split(X, test_size=0.3)
+    """
+    if not arrays:
+        raise ValueError("Passa almeno un array.")
+
+    n_samples = arrays[0].shape[0]
+    for i, arr in enumerate(arrays):
+        if arr.shape[0] != n_samples:
+            raise ValueError(
+                f"Tutti gli array devono avere lo stesso numero di campioni. "
+                f"arrays[0] ha {n_samples}, arrays[{i}] ha {arr.shape[0]}."
+            )
+
+    if not (0.0 < test_size < 1.0):
+        raise ValueError(f"test_size deve essere tra 0 e 1, ricevuto {test_size}.")
+
+    if seed is not None:
+        np.random.seed(seed)
+
+    indices = np.random.permutation(n_samples) if shuffle else np.arange(n_samples)
+
+    n_test  = max(1, int(np.floor(test_size * n_samples)))
+    n_train = n_samples - n_test
+
+    train_idx = indices[:n_train]
+    test_idx  = indices[n_train:]
+
+    result = []
+    for arr in arrays:
+        result.append(arr[train_idx])
+        result.append(arr[test_idx])
+
+    return result
